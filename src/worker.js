@@ -39,102 +39,125 @@ const getMailsPerLabel = async(labels,gmail) => {
  */
 const getMailsForInputLabel = async(label,gmail) => {
   console.log('Getting details for label',label)
-  if (!labels || labels === null) {
-      console.log('No labels found.');
-      return;
-    }
-    const labelDetails = await gmail.users.labels.get({
+  // if (!labels || labels === null) {
+  //     console.log('No labels found.');
+  //     return;
+  //   }
+  //   const labelDetails = await gmail.users.labels.get({
+  //     userId: 'me',
+  //     id: label
+  //   });
+
+    const response = await gmail.users.messages.list({
       userId: 'me',
-      id: label
+      q: `label:${label}`, // Query to filter emails from the specific sender
     });
-    return labelDetails.data
+    const messages = response.data.messages;
+    // console.log(messages.map(msg => msg.id))
+    console.log(`Email count for given label ${label}: ${messages?.length || 0}`)
+    // return labelDetails.data
 }
 
 
 const listLabels = async(gmail) => {
-  const res = await gmail.users.labels.list({
-    userId: 'me',
-  });
-  labels = res.data.labels;
-  // console.log(res.data.messagesTotal,'messageTotal')
-  if (!labels || labels.length === 0) {
-    console.log('No labels found.');
-    return;
+  try {
+    const res = await gmail.users.labels.list({
+      userId: 'me',
+    });
+    const labels = res.data.labels;
+    // console.log(res.data.messagesTotal,'messageTotal')
+    if (!labels || labels.length === 0) {
+      console.log('No labels found.');
+      return;
+    }
+    console.log('Labels:');
+    console.log(labels.map((obj) => obj.id))
+   
+  // await Promise.allSettled(labels.map(async(label) => {
+  //     console.log(`- ${label.name}`);
+      
+  //     // if (label) {
+  //     //     const labelDetails = await gmail.users.labels.get({
+  //     //       userId: 'me',
+  //     //       id: label.id
+  //     //     });
+  //     //     // console.log(labelDetails.data, 'labelDetails.data')
+  //     // }
+  
+  //   })
+  // );
+  
+  // console.log(labels)
+  
+    const labelUserRes = await readLineAsync('which label details do you want , enter the name as it is? ');
+    console.log('Your response was: ' + labelUserRes + ' — Thanks!');
+    const labelsOutput =  await getMailsForInputLabel(labelUserRes,gmail)
+    //console.log(labelsOutput)
+    rl.close();
+  } catch (err) {
+    console.error(`listLabels: error: ${err}`);
+    throw err;
   }
-  console.log('Labels:');
-  console.log(labels.map((obj) => obj.id))
- 
-//   await Promise.allSettled(labels.map(async(label) => {
-//     console.log(`- ${label.name}`);
-    
-//     // if (label) {
-//     //     const labelDetails = await gmail.users.labels.get({
-//     //       userId: 'me',
-//     //       id: label.id
-//     //     });
-//     //     // console.log(labelDetails.data, 'labelDetails.data')
-//     // }
-
-//   })
-// );
-
-// console.log(labels)
-
-const userRes = await readLineAsync('which label details do you want , enter the name as it is? ');
-rl.close();
-console.log('Your response was: ' + userRes + ' — Thanks!');
-  const abc =  await getMailsForInputLabel(userRes,gmail)
-  console.log(abc)
-// const finalMails = await getMailsPerLabel(labels,gmail)
-// console.log(finalMails,'FINALMAILS')
-return gmail
 }
 
 /*
- * getMailsForInputLabel - gets the count of emails from id given by user
+ * listEmailCountForIds - gets the count of emails from id given by user
  */
 const listEmailCountForIds = async(gmail) => {
-  const eid = await readLineAsync(`Enter the from email id: `);
-  const response = await gmail.users.messages.list({
-    userId: 'me',
-    q: `from:${eid}`, // Query to filter emails from the specific sender
-  });
-  const messages = response.data.messages;
-  console.log(`Email count from ${eid}: ${messages?.length || 0}`)
-  rl.close();
-  
+  try {
+    const eid = await readLineAsync(`Enter the from email id: `);
+    const response = await gmail.users.messages.list({
+      userId: 'me',
+      q: `from:${eid}`, // Query to filter emails from the specific sender
+    });
+    const messages = response.data.messages;
+    console.log(`Email count from ${eid}: ${messages?.length || 0}`)
+    rl.close();
+  } catch(err) {
+    console.error(`listEmailCountForIds: error: ${err}`);
+    throw err;
+  }
 }
 
 /*
  * listEmailCountForAttachments - gets the count of emails having attachment size greater than user input
  */
 const listEmailCountForAttachments = async(gmail) => {
-console.log(`Get email count having attachments greater than input size`)
-  const size = await readLineAsync(`Enter size in mb: `);
-  const response = await gmail.users.messages.list({
-    userId: 'me',
-    q: `has:attachment larger:${size}M`, // Query to filter emails from the specific sender
-  });
-  const messages = response.data.messages;
-  console.log(`Email count having attachments greater than size ${size}mb: ${messages?.length || 0}`)
-  rl.close();
+  try {
+  console.log(`Get email count having attachments greater than input size`)
+    const size = await readLineAsync(`Enter size in mb: `);
+    const response = await gmail.users.messages.list({
+      userId: 'me',
+      q: `has:attachment larger:${size}M`, // Query to filter emails from the specific sender
+    });
+    const messages = response.data.messages;
+    console.log(`Email count having attachments greater than size ${size}mb: ${messages?.length || 0}`)
+    rl.close();
+  } catch(err) {
+    console.error(`listEmailCountForAttachments: error: ${err}`);
+    throw err;
+  }
 }
 
 /*
  * listEmailCountForCustomQuery - gets the count of emails for the given custom query
  */
 const listEmailCountForCustomQuery = async(gmail) => {
-  console.log(`Get email count having attachments greater than input size`)
-    const query = await readLineAsync(`Enter size in mb: `);
+  try{
+    const query = await readLineAsync(`Enter custom query: `);
     const response = await gmail.users.messages.list({
       userId: 'me',
       q: `${query}`, // Query to filter emails from the specific sender
     });
     const messages = response.data.messages;
-    console.log(`Email count having attachments greater than size ${size}mb: ${messages?.length || 0}`)
+    // console.log(messages.map(msg => msg.id))
+    console.log(`Email count for given query ${query}: ${messages?.length || 0}`)
     rl.close();
-    
+  } catch(err) {
+    console.error(`listEmailCountForCustomQuery: error: ${err}`);
+    throw err;
   }
+} 
 
 /*
  * getUserClassification - gets the type of filter from user and call the appropriate parent function
