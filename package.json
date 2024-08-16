@@ -1,0 +1,30 @@
+{
+  "name": "projects",
+  "version": "1.0.0",
+  "description": "Gmail bulk delete / cleanup",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run test",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "googleapis": "^105.0.0",
+    "@google-cloud/local-auth": "^2.1.0"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/srini619/gmail-bulk-delete.git"
+  },
+  "keywords": [
+    "gmail",
+    "cleanup",
+    "bulk-delete"
+  ],
+  "author": "srini",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/srini619/gmail-bulk-delete/issues"
+  },
+  "homepage": "https://github.com/srini619/gmail-bulk-delete#readme"
+}
