@@ -73,22 +73,6 @@ const listLabels = async(gmail) => {
     console.log('Labels:');
     console.log(labels.map((obj) => obj.id))
    
-  // await Promise.allSettled(labels.map(async(label) => {
-  //     console.log(`- ${label.name}`);
-      
-  //     // if (label) {
-  //     //     const labelDetails = await gmail.users.labels.get({
-  //     //       userId: 'me',
-  //     //       id: label.id
-  //     //     });
-  //     //     // console.log(labelDetails.data, 'labelDetails.data')
-  //     // }
-  
-  //   })
-  // );
-  
-  // console.log(labels)
-  
     const labelUserRes = await readLineAsync('which label details do you want , enter the name as it is? ');
     console.log('Your response was: ' + labelUserRes + ' — Thanks!');
     const labelsOutput =  await getMailsForInputLabel(labelUserRes,gmail)
