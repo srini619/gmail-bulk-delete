@@ -13,3 +13,6 @@ some sample custom queries
 2) filename:pdf
 3) has:youtube 
 
+for more ref
+https://support.google.com/mail/answer/7190?hl=en
+
