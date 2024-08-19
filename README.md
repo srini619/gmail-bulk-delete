@@ -1,6 +1,8 @@
 # gmail-bulk-delete
 Gmail Cleanup
 
+Get credentials.json from Google cloud console 
+
 npm run start - to start the application 
 
 live sample 
@@ -14,5 +16,8 @@ some sample custom queries
 3) has:youtube 
 
 for more ref
+
 https://support.google.com/mail/answer/7190?hl=en
+
+https://medium.com/@chinusrinivasan619/automating-gmail-bulk-delete-a-cleanup-master-guide-0ff98a7d8717
 
