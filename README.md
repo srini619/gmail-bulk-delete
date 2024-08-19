@@ -3,6 +3,10 @@ Gmail Cleanup
 
 npm run start - to start the application 
 
+live sample 
+![alt text](image.png)
+![alt text](image-1.png)
+
 some sample custom queries 
 
 1) after:2004/04/16
