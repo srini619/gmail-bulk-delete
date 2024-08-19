@@ -16,56 +16,60 @@ const readLineAsync = msg => {
   });
 }
 
-const getMailsPerLabel = async(labels,gmail) => {
-    if (!labels || labels.length === 0) {
-        console.log('No labels found.');
-        return;
-      }
-    const labelsMailCount = labels.map(async obj => {
-      console.log(obj.id,'obj.id')
-        if (obj) {
-            const labelDetails = await gmail.users.labels.get({
-              userId: 'me',
-              id: obj.id
-            });
-           return labelDetails.data
-        }
-      })
-    return Promise.all(labelsMailCount)
+/*
+ * deleteEmailsInBatch - deletes Email in Batches of 50 
+ */
+const deleteEmailsInBatch = async(gmail,messages) => {
+    const messageIds = messages.map((message) => message.id);
+    let count = 1
+    while (messageIds.length > 0) {
+      const batch = messageIds.splice(0, 50);
+      await gmail.users.messages.batchDelete({
+        userId: 'me',
+        ids: batch,
+      });
+      console.log(`deleteEmailsInBatch: Deleted batch ${count++}.`);
+    }
+
+    console.log(`deleteEmailsInBatch: Total ${messages.length} emails deleted.`);
 }
 
 /*
  * getMailsForInputLabel - gets the details of label given by user
  */
-const getMailsForInputLabel = async(label,gmail) => {
-  console.log('Getting details for label',label)
-  // if (!labels || labels === null) {
-  //     console.log('No labels found.');
-  //     return;
-  //   }
-  //   const labelDetails = await gmail.users.labels.get({
-  //     userId: 'me',
-  //     id: label
-  //   });
+const getMailsForInputLabel = async(label,gmail,getOrDeleteEmailUserRes) => {
+  let nextPageToken = null;
+  let messages = [];
+  let batchNum = 1;
 
-    const response = await gmail.users.messages.list({
-      userId: 'me',
-      q: `label:${label}`, // Query to filter emails from the specific sender
-    });
-    const messages = response.data.messages;
-    // console.log(messages.map(msg => msg.id))
+  console.log('Getting details for label',label)
+    do {
+      console.log(`Fetching total email count from label ${label} in batch ${batchNum++}`);
+      const response = await gmail.users.messages.list({
+        userId: 'me',
+        labelIds: [`${label}`], // To filter emails in the Social category
+        pageToken: nextPageToken,
+      });
+      nextPageToken = response.data.nextPageToken;
+      if (response?.data?.messages) {
+        messages = messages.concat(response.data.messages);
+      }
+    } while(nextPageToken)
+    // console.log(messages.map(msg => msg.id));
     console.log(`Email count for given label ${label}: ${messages?.length || 0}`)
-    // return labelDetails.data
+    if (getOrDeleteEmailUserRes === 2 && messages.length > 0) {
+      console.log(`***** WARNING PROCEEDING TO DELETE EMAILS *****`)
+      await deleteEmailsInBatch(gmail,messages)
+    }
 }
 
 
-const listLabels = async(gmail) => {
+const listLabels = async(gmail,getOrDeleteEmailUserRes) => {
   try {
     const res = await gmail.users.labels.list({
       userId: 'me',
     });
     const labels = res.data.labels;
-    // console.log(res.data.messagesTotal,'messageTotal')
     if (!labels || labels.length === 0) {
       console.log('No labels found.');
       return;
@@ -75,9 +79,8 @@ const listLabels = async(gmail) => {
    
     const labelUserRes = await readLineAsync('which label details do you want , enter the name as it is? ');
     console.log('Your response was: ' + labelUserRes + ' — Thanks!');
-    const labelsOutput =  await getMailsForInputLabel(labelUserRes,gmail)
-    //console.log(labelsOutput)
-    rl.close();
+    await getMailsForInputLabel(labelUserRes,gmail,getOrDeleteEmailUserRes)
+    
   } catch (err) {
     console.error(`listLabels: error: ${err}`);
     throw err;
@@ -87,16 +90,31 @@ const listLabels = async(gmail) => {
 /*
  * listEmailCountForIds - gets the count of emails from id given by user
  */
-const listEmailCountForIds = async(gmail) => {
+const listEmailCountForIds = async(gmail,getOrDeleteEmailUserRes) => {
+  let nextPageToken = null;
+  let messages = [];
+  let batchNum = 1;
   try {
     const eid = await readLineAsync(`Enter the from email id: `);
-    const response = await gmail.users.messages.list({
-      userId: 'me',
-      q: `from:${eid}`, // Query to filter emails from the specific sender
-    });
-    const messages = response.data.messages;
+    do {
+      console.log(`Fetching total email count from email ${eid} in batch ${batchNum++}`);
+      const response = await gmail.users.messages.list({
+        userId: 'me',
+        q: `from:${eid}`, // Query to filter emails from the specific sender
+        pageToken: nextPageToken,
+      });
+      nextPageToken = response.data.nextPageToken;
+        if (response?.data?.messages) {
+          messages = messages.concat(response.data.messages);
+        }
+    } while (nextPageToken)
     console.log(`Email count from ${eid}: ${messages?.length || 0}`)
-    rl.close();
+    
+    if (getOrDeleteEmailUserRes === 2 && messages.length > 0) {
+      console.log(`***** WARNING PROCEEDING TO DELETE EMAILS *****`)
+      console.log(`***** STOP SERVER IF YOU WANT TO ABORT *****`)
+      await deleteEmailsInBatch(gmail,messages)
+    }
   } catch(err) {
     console.error(`listEmailCountForIds: error: ${err}`);
     throw err;
@@ -106,17 +124,32 @@ const listEmailCountForIds = async(gmail) => {
 /*
  * listEmailCountForAttachments - gets the count of emails having attachment size greater than user input
  */
-const listEmailCountForAttachments = async(gmail) => {
+const listEmailCountForAttachments = async(gmail,getOrDeleteEmailUserRes) => {
+  let nextPageToken = null;
+  let messages = [];
+  let batchNum = 1;
   try {
   console.log(`Get email count having attachments greater than input size`)
     const size = await readLineAsync(`Enter size in mb: `);
-    const response = await gmail.users.messages.list({
-      userId: 'me',
-      q: `has:attachment larger:${size}M`, // Query to filter emails from the specific sender
-    });
-    const messages = response.data.messages;
+    do {
+      console.log(`Fetching total email count in batch ${batchNum++}`);
+      const response = await gmail.users.messages.list({
+        userId: 'me',
+        q: `has:attachment larger:${size}M`, // Query to filter emails from the specific sender
+        pageToken: nextPageToken,
+      });
+      nextPageToken = response.data.nextPageToken;
+        if (response?.data?.messages) {
+          messages = messages.concat(response.data.messages);
+        }
+    } while (nextPageToken)
     console.log(`Email count having attachments greater than size ${size}mb: ${messages?.length || 0}`)
-    rl.close();
+    
+    if (getOrDeleteEmailUserRes === 2 && messages.length > 0) {
+      console.log(`***** WARNING PROCEEDING TO DELETE EMAILS *****`)
+      await deleteEmailsInBatch(gmail,messages)
+    }
+
   } catch(err) {
     console.error(`listEmailCountForAttachments: error: ${err}`);
     throw err;
@@ -126,17 +159,30 @@ const listEmailCountForAttachments = async(gmail) => {
 /*
  * listEmailCountForCustomQuery - gets the count of emails for the given custom query
  */
-const listEmailCountForCustomQuery = async(gmail) => {
+const listEmailCountForCustomQuery = async(gmail,getOrDeleteEmailUserRes) => {
+  let nextPageToken = null;
+  let messages = [];
+  let batchNum = 1;
   try{
     const query = await readLineAsync(`Enter custom query: `);
-    const response = await gmail.users.messages.list({
+    do {
+      console.log(`Fetching total email count in batch ${batchNum++}`);
+      const response = await gmail.users.messages.list({
       userId: 'me',
       q: `${query}`, // Query to filter emails from the specific sender
+      pageToken: nextPageToken,
     });
-    const messages = response.data.messages;
-    // console.log(messages.map(msg => msg.id))
+    nextPageToken = response.data.nextPageToken;
+      if (response?.data?.messages) {
+        messages = messages.concat(response.data.messages);
+      }
+    } while (nextPageToken)
+    
     console.log(`Email count for given query ${query}: ${messages?.length || 0}`)
-    rl.close();
+    if (getOrDeleteEmailUserRes === 2 && messages.length > 0) {
+      console.log(`***** WARNING PROCEEDING TO DELETE EMAILS *****`)
+      await deleteEmailsInBatch(gmail,messages)
+    }
   } catch(err) {
     console.error(`listEmailCountForCustomQuery: error: ${err}`);
     throw err;
@@ -155,20 +201,21 @@ const getUserClassification = async(gmail) => {
 
   switch(Number(filterTypeUserRes)) {
     case 1:
-      await listLabels(gmail)
+      await listLabels(gmail,Number(getOrDeleteEmailUserRes))
       break;
     case 2:
-      await listEmailCountForIds(gmail)
+      await listEmailCountForIds(gmail,Number(getOrDeleteEmailUserRes))
       break;
     case 3:
-      await listEmailCountForAttachments(gmail)
+      await listEmailCountForAttachments(gmail,Number(getOrDeleteEmailUserRes))
       break;
     case 4 :
-      await listEmailCountForCustomQuery(gmail)
+      await listEmailCountForCustomQuery(gmail,Number(getOrDeleteEmailUserRes))
       break;
     default: 
     console.log(`Enter a valid input`)
   }
+  rl.close();
 }
 
-module.exports = { getMailsPerLabel, listLabels, getUserClassification }
+module.exports = { getUserClassification }
